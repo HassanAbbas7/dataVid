@@ -8,11 +8,13 @@ import os
 from time import sleep
 import cv2
 import argparse
+import json
 
 class vidizer():
     def __init__(self):
         self.numbers = re.compile(r'(\d+)')
         self.imageSize = (300, 300)
+        self.fileData = {"fileName": "", "fileSize": None}
         pass
     
     def convertIntoBytes(self, filePath):
@@ -26,7 +28,6 @@ class vidizer():
 
 
     def writeDataToImage(self, data, image, no):
-        print(len(data))
         bytes_ = np.array(data).reshape(image.size)
         pixels = image.load()
         width, height = image.size
@@ -34,6 +35,9 @@ class vidizer():
             for y in range(height):
                 if bytes_[x,y] == (256):
                     pixels[x, y] = (0, 0, 255)
+                elif bytes_[x,y] == (257):
+                    print("printing meta data indicator 257")
+                    pixels[x, y] = (0, 200, 0)
                 else:
                     pixels[x, y] = (bytes_[x,y], 0, 0)
         image.save(f"Images/image{no}.png")
@@ -72,7 +76,13 @@ class vidizer():
 
     def vidize(self, fileName):
         x = 0
+        fileSize = os.path.getsize(fileName)
+        self.fileData = {"fileName": fileName, "fileSize": fileSize}
+        fileDataBytes = list(bytes(json.dumps(self.fileData), encoding='utf-8'))
+        print(fileDataBytes)
+        input()
         bytes_ = self.convertIntoBytes(fileName)
+        bytes_.extend([257, 257, 257] + fileDataBytes)
         for _ in self.sliceData(bytes_, (self.imageSize[0]*self.imageSize[0]), 256):
             x = x + 1
             self.writeDataToImage(_, self.getBlankImage(self.imageSize), x)
@@ -110,6 +120,8 @@ class vidizer():
         bytes_ = []
         numbers = re.compile(r'(\d+)')
         os.chdir("Images/")
+        fileMetaData = []
+        metaDataApproaching = False
         for imageName in sorted(glob.glob('*.png'), key=self.numericalSort):
             print(imageName)
             image = Image.open(imageName)
@@ -118,16 +130,27 @@ class vidizer():
             for x in range(width):
                 for y in range(height):
                     if pixels[x,y][0] >= 0:
-                        if pixels[x,y][2] == 255:
+                        if pixels[x, y][2] == 255:
+                            metaDataApproaching = False
                             continue
-                        bytes_.append(pixels[x,y][0])
+                        if pixels[x,y][1] == 200:
+                            print("getting meta data indicator")
+                            metaDataApproaching = True
+                            
+                        if metaDataApproaching:
+                            fileMetaData.append(pixels[x,y][0])
+                        else:
+                            bytes_.append(pixels[x,y][0])
+                            
             os.remove(imageName)
-        f = open("../out.exe", 'wb') 
-        f.write(bytes(bytes_))
-        f.close()
-        os.remove("Images/cvout.avi")
 
-    
+        print(len(fileMetaData))
+        json_ = bytes(fileMetaData[3:])
+        json_ = json.loads(json_.decode())
+        print(json_['fileName'])
+        with open(f"../output_{json_['fileName']}", 'wb')  as file:
+            file.write(bytes(bytes_))
+
 
 
 
