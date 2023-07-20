@@ -7,7 +7,7 @@ from numba import jit, cuda
 import os
 from time import sleep
 import cv2
-
+import argparse
 
 class vidizer():
     def __init__(self):
@@ -60,6 +60,7 @@ class vidizer():
             size = (width, height)
             print(size)
             img_array.append(img)
+            os.remove(fileName)
 
         out = cv2.VideoWriter(f"Images/{video_name}.avi", fourcc, fps, size)
 
@@ -67,13 +68,9 @@ class vidizer():
             out.write(img_array[i])
         out.release()
     
-    def makeVideo(self):
-        os.chdir("Images/")
-        os.system("ffmpeg -i image%d.png -r 5 -c:v mjpeg -qscale:v 0 test.avi")
-        # os.system("del *.png")
 
 
-    def makeImages(self, fileName):
+    def vidize(self, fileName):
         x = 0
         bytes_ = self.convertIntoBytes(fileName)
         for _ in self.sliceData(bytes_, (self.imageSize[0]*self.imageSize[0]), 256):
@@ -82,14 +79,37 @@ class vidizer():
         self.makeVideoCv()
 
 
+    def filify(self):
+        cap = cv2.VideoCapture("Images/cvout.avi")
+
+        # Check if the video file was opened successfully
+        if not cap.isOpened():
+            print("Error opening video file")
+            return
+
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # Loop through each frame and save it as an image
+        for i in range(frame_count):
+            ret, frame = cap.read()
+
+            # Break the loop if the video has ended
+            if not ret:
+                break
+
+            # Save the frame as an image in the output folder
+            image_path = f"Images/image{i:04d}.png"
+            cv2.imwrite(image_path, frame)
+
+        # Release the video capture object
+        cap.release()
+        self.convertBack()
+
+        
     def convertBack(self):
         bytes_ = []
         numbers = re.compile(r'(\d+)')
         os.chdir("Images/")
-        # os.system('ffmpeg -i output.mp4 -vf "fps=2" image%d.png')
-        # sleep(2)
-        # os.system("dir")
-        # sleep(1)
         for imageName in sorted(glob.glob('*.png'), key=self.numericalSort):
             print(imageName)
             image = Image.open(imageName)
@@ -101,11 +121,25 @@ class vidizer():
                         if pixels[x,y][2] == 255:
                             continue
                         bytes_.append(pixels[x,y][0])
-        f = open("out.exe", 'wb') 
+            os.remove(imageName)
+        f = open("../out.exe", 'wb') 
         f.write(bytes(bytes_))
         f.close()
+        os.remove("Images/cvout.avi")
 
     
 
-vidizer = vidizer()
-vidizer.makeVideoCv()
+
+
+if __name__ == "__main__":
+    vidizer = vidizer()
+    parser = argparse.ArgumentParser(description="My script description")
+    parser.add_argument("--vidize", type=str, help="Description of argument 1")
+    parser.add_argument("--filify", type=bool, default=False, help="Description of argument 2")
+
+    args = parser.parse_args()
+    if (args.vidize):
+        print(args.vidize)
+        vidizer.vidize(args.vidize)
+    elif args.filify:
+        vidizer.filify()
