@@ -29,27 +29,21 @@ def bit_string_to_bytes(bit_string):
 
 
 def writeDataToImage(data, image, no):
-        blockSize = 4
+        pixels = image.load()
+        for i in range(0, len(data), 2):
+            for j in range(0, len(data), 2):
+                pixels_position = matrix[i:i+2, j:j+2]
+                
+                
+                block_data = block_data.flatten()  # Flatten the 2D block into a 1D array
 
-        if data%blockSize != 0:
-            raise Exception(f"DataShapeError:{len(data)} could not be divisible by {blockSize}")
-            return
+                # Ensure the block size is exactly 4x4 (if not, it's the last block)
+                block_data.resize((block_size * block_size,), refcheck=False)
 
-
-        bits = np.array(data).reshape(image.size)
-
-        for i in range(0, matrix_length, block_size):
-        for j in range(0, matrix_length, block_size):
-            block_data = matrix[i:i+block_size, j:j+block_size]
-            block_data = block_data.flatten()  # Flatten the 2D block into a 1D array
-
-            # Ensure the block size is exactly 4x4 (if not, it's the last block)
-            block_data.resize((block_size * block_size,), refcheck=False)
-
-            # Write the data to the corresponding pixels in the image
-            for k, pixel_value in enumerate(block_data):
-                x = j + (k % block_size)
-                y = i + (k // block_size)
-                image.putpixel((x, y), min(int(pixel_value), max_value))
+                # Write the data to the corresponding pixels in the image
+                for k, pixel_value in enumerate(block_data):
+                    x = j + (k % block_size)
+                    y = i + (k // block_size)
+                    image.putpixel((x, y), min(int(pixel_value), max_value))
 
         return image

@@ -15,8 +15,26 @@ class vidizer():
         self.numbers = re.compile(r'(\d+)')
         self.imageSize = (300, 300)
         self.fileData = {"fileName": "", "fileSize": None}
+        self.blockSize = 4
+        self.makeInBlocks = False
         pass
     
+
+    def bytes_to_bit_string(self, byte_data):
+        bit_string = ''.join(format(byte, '08b') for byte in byte_data)
+        return bit_string
+
+
+    def bit_string_to_bytes(self, bit_string):
+        # Ensure the bit string length is a multiple of 8 (8 bits per byte)
+        padded_bit_string = bit_string.zfill((len(bit_string) + 7) // 8 * 8)
+
+        # Convert the padded bit string to bytes
+        byte_data = bytes(int(padded_bit_string[i:i+8], 2) for i in range(0, len(padded_bit_string), 8))
+
+        return byte_data
+
+
     def convertIntoBytes(self, filePath):
         with open(filePath, "rb") as file:
             return list(file.read())
@@ -43,7 +61,7 @@ class vidizer():
         image.save(f"Images/image{no}.png")
         
     def sliceData(self, data, sets, fillvalue):
-        for group in zip_longest(*[iter(data)] * sets, fillvalue=fillvalue):
+        for group in zip_longest(*[iter(list(data))] * int(sets), fillvalue=fillvalue):
             yield list(group)
             
     def numericalSort(self, value):
@@ -73,19 +91,6 @@ class vidizer():
         out.release()
     
 
-    def bytes_to_bit_string(self, byte_data):
-        bit_string = ''.join(format(byte, '08b') for byte in byte_data)
-        return bit_string
-
-
-    def bit_string_to_bytes(self, bit_string):
-        # Ensure the bit string length is a multiple of 8 (8 bits per byte)
-        padded_bit_string = bit_string.zfill((len(bit_string) + 7) // 8 * 8)
-
-        # Convert the padded bit string to bytes
-        byte_data = bytes(int(padded_bit_string[i:i+8], 2) for i in range(0, len(padded_bit_string), 8))
-
-        return byte_data
 
     def vidize(self, fileName):
         x = 0
@@ -96,10 +101,17 @@ class vidizer():
         input()
         bytes_ = self.convertIntoBytes(fileName)
         bytes_.extend([257, 257, 257] + fileDataBytes)
-        for _ in self.sliceData(bytes_to_bit_string(bytes_), (self.imageSize[0]*self.imageSize[0])/4, 256):
+
+        if self.makeInBlocks:
+            data = self.bytes_to_bit_string(bytes_)
+        else:
+            data = bytes_
+
+
+        for _ in self.sliceData(data, (self.imageSize[0]*self.imageSize[0])/(self.blockSize if self.makeInBlocks else 1), 256):
             x = x + 1
-            # self.writeDataToImage(_, self.getBlankImage(self.imageSize), x)
-            self.experimentalWriteToImage(_, self.getBlankImage(self.imageSize), x)
+            self.writeDataToImage(_, self.getBlankImage(self.imageSize), x)
+            # self.experimentalWriteToImage(_, self.getBlankImage(self.imageSize), x)
         self.makeVideoCv()
 
 
