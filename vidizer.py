@@ -73,6 +73,19 @@ class vidizer():
         out.release()
     
 
+    def bytes_to_bit_string(self, byte_data):
+        bit_string = ''.join(format(byte, '08b') for byte in byte_data)
+        return bit_string
+
+
+    def bit_string_to_bytes(self, bit_string):
+        # Ensure the bit string length is a multiple of 8 (8 bits per byte)
+        padded_bit_string = bit_string.zfill((len(bit_string) + 7) // 8 * 8)
+
+        # Convert the padded bit string to bytes
+        byte_data = bytes(int(padded_bit_string[i:i+8], 2) for i in range(0, len(padded_bit_string), 8))
+
+        return byte_data
 
     def vidize(self, fileName):
         x = 0
@@ -83,11 +96,19 @@ class vidizer():
         input()
         bytes_ = self.convertIntoBytes(fileName)
         bytes_.extend([257, 257, 257] + fileDataBytes)
-        for _ in self.sliceData(bytes_, (self.imageSize[0]*self.imageSize[0]), 256):
+        for _ in self.sliceData(bytes_to_bit_string(bytes_), (self.imageSize[0]*self.imageSize[0])/4, 256):
             x = x + 1
-            self.writeDataToImage(_, self.getBlankImage(self.imageSize), x)
+            # self.writeDataToImage(_, self.getBlankImage(self.imageSize), x)
+            self.experimentalWriteToImage(_, self.getBlankImage(self.imageSize), x)
         self.makeVideoCv()
 
+
+
+    def experimentalWriteToImage(self, data, image, no):
+        bits = self.bytes_to_bit_string(list(bytes("This is a test string..."*no, encoding='utf-8')))
+        bytes_ = (self.bit_string_to_bytes(bits))
+        print(bytes_)
+        input()
 
     def filify(self):
         cap = cv2.VideoCapture("Images/cvout.avi")
