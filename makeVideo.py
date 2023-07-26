@@ -30,12 +30,14 @@ def writeDataToImage(data, image, no, makeInBlocks=False):
     pixels = image.load()
     width, height = image.size
     tracker = 0
-    dummyArray = np.array([x for x in range(image.size[0]*image.size[0])]).reshape(image.size)
     for x in range(0, width, 1 + makeInBlocks):
         for y in range(0, height, 1 + makeInBlocks):
             if makeInBlocks:
-                for list_ in (dummyArray[x:x+2, y:y+2]):
-                    pixels[list_[0], list_[1]] = (255, 255, 255) if str(data[tracker])=='1' else (0, 0, 0)
+                pixelData = (255,255,255) if str(bytes_[tracker])=='1' else (0,0,0)
+                pixels[x, y] = pixelData
+                pixels[x, y+1] = pixelData
+                pixels[x+1, y] = pixelData
+                pixels[x+1, y+1] = pixelData
                 tracker = tracker + 1
             else:
                 if bytes_[x,y] == (256):
