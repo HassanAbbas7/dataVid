@@ -61,10 +61,10 @@ def numericalSort(value):
     return parts
 
 
-def makeVideoCv():
-    fps = 10
+def makeVideoCv(videoEncoding=True):
+    fps = 30
     video_name = "cvout"
-    fourcc = cv2.VideoWriter_fourcc('R','G','B','A')
+    fourcc = cv2.VideoWriter_fourcc('R','G','B','A') if videoEncoding else 0
     img_array = []
     for fileName in sorted(glob.glob('Images/*.png'), key=numericalSort):
         print("hello")
@@ -100,4 +100,4 @@ def vidize(fileName, makeInBlocks=True, blockSize=4, imageSize=(300, 300)):
     for _ in sliceData(data, (imageSize[0]*imageSize[0])/(blockSize if makeInBlocks else 1), 256):
         x = x + 1
         writeDataToImage(_, getBlankImage(imageSize), x, makeInBlocks=makeInBlocks)
-    makeVideoCv()
+    makeVideoCv(videoEncoding=not makeInBlocks)
